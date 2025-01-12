@@ -1,0 +1,32 @@
+package com.example.parkingSystem.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "users")
+public class Users {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private long id;
+
+    @Column(name = "username", nullable = false)
+    private String username;
+    @Column(name = "password", nullable = false)
+    private String password;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
+    private Role role;
+    @Column(name = "dob", nullable = false)
+    private String dob;
+
+    @Column(name = "phone", nullable = false, unique = true)
+    private String phone;
+
+    @Column(name = "address", nullable = false)
+    private String address;
+
+    public enum Role{
+        EMPLOYEE, ADMIN
+    }
+}

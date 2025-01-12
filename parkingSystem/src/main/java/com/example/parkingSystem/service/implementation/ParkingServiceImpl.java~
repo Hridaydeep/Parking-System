@@ -1,0 +1,128 @@
+package com.example.parkingSystem.service.implementation;
+
+import com.example.parkingSystem.dto.ReceiptDto;
+import com.example.parkingSystem.dto.VehicleInfoDto;
+import com.example.parkingSystem.entity.ParkingSlot;
+import com.example.parkingSystem.entity.Staffs;
+import com.example.parkingSystem.entity.VehicleDetails;
+import com.example.parkingSystem.repository.ParkingSlotRepo;
+import com.example.parkingSystem.repository.StaffsRepository;
+import com.example.parkingSystem.repository.VehicleDetailsRepo;
+import com.example.parkingSystem.service.ParkingService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class ParkingServiceImpl implements ParkingService {
+    @Autowired
+    private ParkingSlotRepo parkingSlotRepo;
+
+    @Autowired
+    private VehicleDetailsRepo vehicleDetailsRepo;
+
+    @Autowired
+    private StaffsRepository staffsRepository;
+
+    public Integer isAvailable(String slotType) {
+        List<ParkingSlot> availableSlots = parkingSlotRepo.findBySlotTypeAndIsAvailable(slotType, true);
+        System.out.print(availableSlots);
+        return availableSlots.size();
+    }
+
+    public ReceiptDto saveParking(VehicleInfoDto vehicleInfoDto) {
+        VehicleDetails vehicleDetails = vehicleDetailsRepo.findByVehicleNumberAndExitedByIsNull(vehicleInfoDto.getVehicleNumber());
+        if (vehicleDetails != null) {
+
+            System.out.println("HHHHEEERRRRRREEEEEEEE  "+vehicleDetails.getSlotName().getSlotName()+"   "+vehicleDetails.getExitTimestamp());
+            return exitParking(vehicleDetails.getSlotName().getSlotName());
+        }
+        List<ParkingSlot> availableSlots = parkingSlotRepo.findBySlotTypeAndIsAvailable(vehicleInfoDto.getVehicleType(), true);
+
+        //from the list of parking spots, get the first one
+        ParkingSlot parkingSlot = availableSlots.isEmpty() ? null : availableSlots.get(0);
+        if(parkingSlot==null){
+            return null;
+        }
+
+        //reserving the first available slot
+        parkingSlot.setAvailable(false); // <2>
+        parkingSlotRepo.save(parkingSlot);
+        //done with saving
+
+        double price=10.0;
+        if(vehicleInfoDto.getVehicleType().equals("CAR")){
+                price=20.0;
+        }
+
+        Optional<Staffs> repo = staffsRepository.findByPhone("8876543210");
+        Staffs staff = null;
+        if(repo.isPresent()){
+            staff = repo.get();
+        }
+
+        VehicleDetails newVehicleDetails = new VehicleDetails(
+                vehicleInfoDto.getVehicleNumber(),
+                vehicleInfoDto.getVehicleType(),
+                vehicleInfoDto.getContactNumber(),
+                parkingSlot, price, staff, LocalDateTime.now(),
+                null, null);
+
+            //Saving the new vehicle details in repo
+        vehicleDetailsRepo.save(newVehicleDetails);
+        return new ReceiptDto(
+                vehicleInfoDto.getVehicleNumber(),
+                vehicleInfoDto.getVehicleType(),
+                vehicleInfoDto.getContactNumber(),
+                parkingSlot.getSlotName(), price, price,
+                LocalDateTime.now(), null);
+    }
+
+    public ReceiptDto exitParking(String slotName) {
+        Optional<Staffs> repo = staffsRepository.findByPhone("9854765432");
+        Staffs staff = null;
+        if(repo.isPresent()){
+            staff = repo.get();
+        }
+        ParkingSlot parkingSlot = parkingSlotRepo.findBySlotName(slotName);
+        if(parkingSlot.isAvailable()) return null;
+        VehicleDetails vehicleDetails = vehicleDetailsRepo.findBySlotNameAndExitedByIsNull(parkingSlot);
+        if (vehicleDetails != null) {
+            parkingSlot.setAvailable(true);
+            parkingSlotRepo.save(parkingSlot); //resetting the slot
+            LocalDateTime exitTimestamp = LocalDateTime.now();
+            Duration duration = Duration.between(vehicleDetails.getEnterTimestamp(), exitTimestamp);
+            int totalHour = (int) Math.ceil(duration.toMinutes() / 60.0);
+            totalHour=totalHour==0?1:totalHour;
+            double totalAmount = vehicleDetails.getTotalAmount() * totalHour;
+            //System.out.println(totalHour+"  "+totalAmount);
+            vehicleDetails.setExitTimestamp(exitTimestamp);
+            vehicleDetails.setTotalAmount(totalAmount);
+            vehicleDetails.setExitedBy(staff);
+            VehicleDetails savedVehicleDetails = vehicleDetailsRepo.save(vehicleDetails);
+            return new ReceiptDto(
+                    savedVehicleDetails.getVehicleNumber(),
+                    savedVehicleDetails.getVehicleType(),
+                    savedVehicleDetails.getContactNumber(),
+                    savedVehicleDetails.getSlotName().getSlotName(),
+                    totalAmount,
+                    savedVehicleDetails.getTotalAmount(),
+                    savedVehicleDetails.getEnterTimestamp(),
+                    savedVehicleDetails.getExitTimestamp()
+            );
+        }
+        return null;
+    }
+
+    public String getParkingSlotNumber(String vehicleNumber) {
+        VehicleDetails vehicleDetails = vehicleDetailsRepo.findByVehicleNumberAndExitedByIsNull(vehicleNumber);
+        if (vehicleDetails != null) {
+            return vehicleDetails.getSlotName().getSlotName();
+        }
+        return null;
+    }
+}

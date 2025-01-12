@@ -1,0 +1,13 @@
+package com.example.parkingSystem.dto;
+
+import lombok.Data;
+
+@Data
+public class StaffDto {
+    private String username;
+    private String password;
+    private String dob;
+    private String phone;
+    private String address;
+
+}

@@ -1,0 +1,30 @@
+package com.example.parkingSystem.service.implementation;
+
+import com.example.parkingSystem.dto.StaffDto;
+import com.example.parkingSystem.dto.LoginDto;
+import com.example.parkingSystem.dto.LoginMessage;
+import com.example.parkingSystem.repository.StaffsRepository;
+
+import com.example.parkingSystem.service.LoginService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+@Service
+public class LoginServiceImpl implements LoginService {
+    @Autowired
+    private StaffsRepository staffsRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+
+    @Override
+    public String addEmployee(StaffDto staffDTO) {
+        return null;
+    }
+
+    @Override
+    public LoginMessage loginEmployee(LoginDto loginDTO) {
+        return null;
+    }
+}
